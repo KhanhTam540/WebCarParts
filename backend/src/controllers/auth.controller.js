@@ -15,7 +15,7 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false 
   },
-  connectionTimeout: 50000,
+  connectionTimeout: 5000,
 });
 
 // ==================== REGISTER - KHÔNG CẦN OTP ====================

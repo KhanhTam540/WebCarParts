@@ -174,47 +174,7 @@ const Register = () => {
               className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
-          </div>
-
-          {/* Full Name (optional) */}
-          <div className="relative">
-            <User className="absolute left-4 top-4 text-slate-400" size={20} />
-            <input
-              type="text"
-              name="full_name"
-              placeholder="Họ và tên (không bắt buộc)"
-              value={formData.full_name}
-              onChange={handleChange}
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Phone (optional) */}
-          <div className="relative">
-            <User className="absolute left-4 top-4 text-slate-400" size={20} />
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Số điện thoại (không bắt buộc)"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Address (optional) */}
-          <div className="relative">
-            <User className="absolute left-4 top-4 text-slate-400" size={20} />
-            <input
-              type="text"
-              name="address"
-              placeholder="Địa chỉ (không bắt buộc)"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
+          </div> 
           {/* Password */}
           <div className="relative">
             <Lock className="absolute left-4 top-4 text-slate-400" size={20} />
