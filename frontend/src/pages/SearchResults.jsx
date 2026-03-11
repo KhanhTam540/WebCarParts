@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import ProductCard from '../components/common/ProductCard';
+import ProductCard from '../components/Common/ProductCard';
 import productApi from '../api/productApi';
 import { Search, Filter, X } from 'lucide-react';
 
