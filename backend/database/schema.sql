@@ -1,11 +1,13 @@
 -- =============================================
--- Car Parts Database Schema
+-- CAR PARTS DATABASE SCHEMA
 -- =============================================
 
+-- Tạo database (chạy riêng dòng này trước)
 CREATE DATABASE IF NOT EXISTS car_parts_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
+-- Sau đó chọn database
 USE car_parts_db;
 
 -- ========== 1. ROLES & USERS ==========
@@ -14,20 +16,20 @@ CREATE TABLE IF NOT EXISTS roles (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(50) NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
-  full_name NVARCHAR(255) DEFAULT NULL,
-  phone VARCHAR(20) DEFAULT NULL,
-  address NVARCHAR(500) DEFAULT NULL,
+  full_name NVARCHAR(255),
+  phone VARCHAR(20),
+  address NVARCHAR(500),
   is_active BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS user_roles (
   user_id INT NOT NULL,
@@ -35,7 +37,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
   PRIMARY KEY (user_id, role_id),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS otp_verifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -44,7 +46,7 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
   expires_at DATETIME NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 -- ========== 2. NOTIFICATIONS ==========
 CREATE TABLE IF NOT EXISTS notifications (
@@ -53,22 +55,22 @@ CREATE TABLE IF NOT EXISTS notifications (
   type VARCHAR(50) NOT NULL,
   title NVARCHAR(255) NOT NULL,
   message NVARCHAR(1000) NOT NULL,
-  data JSON DEFAULT NULL,
+  data JSON,
   is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_user_read (user_id, is_read),
   INDEX idx_created_at (created_at)
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 -- ========== 3. VEHICLE HIERARCHY ==========
 
 CREATE TABLE IF NOT EXISTS brands (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name NVARCHAR(100) NOT NULL UNIQUE,
-  country NVARCHAR(100) DEFAULT NULL,
+  country NVARCHAR(100),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS car_models (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -76,7 +78,7 @@ CREATE TABLE IF NOT EXISTS car_models (
   name NVARCHAR(100) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS model_years (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -85,7 +87,7 @@ CREATE TABLE IF NOT EXISTS model_years (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (model_id) REFERENCES car_models(id) ON DELETE CASCADE,
   UNIQUE KEY unique_model_year (model_id, year)
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 -- ========== 4. CATALOG ==========
 
@@ -93,20 +95,20 @@ CREATE TABLE IF NOT EXISTS categories (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name NVARCHAR(100) NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS parts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   category_id INT NOT NULL,
   name NVARCHAR(255) NOT NULL,
-  description NVARCHAR(1000) DEFAULT NULL,
+  description NVARCHAR(1000),
   price DECIMAL(12, 2) NOT NULL DEFAULT 0,
   stock_quantity INT NOT NULL DEFAULT 0,
-  image_url VARCHAR(500) DEFAULT NULL,
+  image_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS part_compatibility (
   part_id INT NOT NULL,
@@ -114,7 +116,7 @@ CREATE TABLE IF NOT EXISTS part_compatibility (
   PRIMARY KEY (part_id, model_year_id),
   FOREIGN KEY (part_id) REFERENCES parts(id) ON DELETE CASCADE,
   FOREIGN KEY (model_year_id) REFERENCES model_years(id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 -- ========== 5. WISHLIST ==========
 CREATE TABLE IF NOT EXISTS wishlist (
@@ -125,7 +127,7 @@ CREATE TABLE IF NOT EXISTS wishlist (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (part_id) REFERENCES parts(id) ON DELETE CASCADE,
   UNIQUE KEY unique_wishlist_item (user_id, part_id)
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 -- ========== 6. SALES ==========
 
@@ -138,7 +140,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (part_id) REFERENCES parts(id) ON DELETE CASCADE,
   UNIQUE KEY unique_cart_item (user_id, part_id)
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -148,7 +150,7 @@ CREATE TABLE IF NOT EXISTS orders (
   order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
 
 CREATE TABLE IF NOT EXISTS order_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -158,4 +160,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   price_at_purchase DECIMAL(12, 2) NOT NULL,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   FOREIGN KEY (part_id) REFERENCES parts(id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+);
+
+-- Thông báo hoàn tất
+SELECT 'Schema created successfully!' AS 'Status';
