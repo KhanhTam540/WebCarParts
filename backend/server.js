@@ -7,7 +7,10 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://webcarparts-frontend.onrender.com', // Thay bằng link Frontend thật của bạn
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
