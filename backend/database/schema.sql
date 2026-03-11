@@ -1,0 +1,161 @@
+-- =============================================
+-- Car Parts Database Schema
+-- =============================================
+
+CREATE DATABASE IF NOT EXISTS car_parts_db
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE car_parts_db;
+
+-- ========== 1. ROLES & USERS ==========
+
+CREATE TABLE IF NOT EXISTS roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  full_name NVARCHAR(255) DEFAULT NULL,
+  phone VARCHAR(20) DEFAULT NULL,
+  address NVARCHAR(500) DEFAULT NULL,
+  is_active BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_id INT NOT NULL,
+  role_id INT NOT NULL,
+  PRIMARY KEY (user_id, role_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS otp_verifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  otp_code VARCHAR(6) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ========== 2. NOTIFICATIONS ==========
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  title NVARCHAR(255) NOT NULL,
+  message NVARCHAR(1000) NOT NULL,
+  data JSON DEFAULT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user_read (user_id, is_read),
+  INDEX idx_created_at (created_at)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ========== 3. VEHICLE HIERARCHY ==========
+
+CREATE TABLE IF NOT EXISTS brands (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name NVARCHAR(100) NOT NULL UNIQUE,
+  country NVARCHAR(100) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS car_models (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  brand_id INT NOT NULL,
+  name NVARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS model_years (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  model_id INT NOT NULL,
+  year INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (model_id) REFERENCES car_models(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_model_year (model_id, year)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ========== 4. CATALOG ==========
+
+CREATE TABLE IF NOT EXISTS categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name NVARCHAR(100) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS parts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  category_id INT NOT NULL,
+  name NVARCHAR(255) NOT NULL,
+  description NVARCHAR(1000) DEFAULT NULL,
+  price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  stock_quantity INT NOT NULL DEFAULT 0,
+  image_url VARCHAR(500) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS part_compatibility (
+  part_id INT NOT NULL,
+  model_year_id INT NOT NULL,
+  PRIMARY KEY (part_id, model_year_id),
+  FOREIGN KEY (part_id) REFERENCES parts(id) ON DELETE CASCADE,
+  FOREIGN KEY (model_year_id) REFERENCES model_years(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ========== 5. WISHLIST ==========
+CREATE TABLE IF NOT EXISTS wishlist (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  part_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (part_id) REFERENCES parts(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_wishlist_item (user_id, part_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ========== 6. SALES ==========
+
+CREATE TABLE IF NOT EXISTS cart_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  part_id INT NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (part_id) REFERENCES parts(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_cart_item (user_id, part_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  status ENUM('PENDING', 'PAID', 'SHIPPING', 'COMPLETED', 'CANCELLED') DEFAULT 'PENDING',
+  order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  part_id INT NOT NULL,
+  quantity INT NOT NULL,
+  price_at_purchase DECIMAL(12, 2) NOT NULL,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (part_id) REFERENCES parts(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
