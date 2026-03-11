@@ -11,7 +11,11 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS
-  }
+  },
+  tls: {
+    rejectUnauthorized: false 
+  },
+  connectionTimeout: 10000,
 });
 
 // Generate 6-digit OTP
