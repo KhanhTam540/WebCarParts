@@ -5,7 +5,7 @@ const authApi = {
   register: (data) => axiosClient.post('/auth/register', data),
   
   // Xác thực OTP
-  verifyOtp: (data) => axiosClient.post('/auth/verify-otp', data),
+  //verifyOtp: (data) => axiosClient.post('/auth/verify-otp', data),
   
   // Đăng nhập
   login: (data) => axiosClient.post('/auth/login', data),
