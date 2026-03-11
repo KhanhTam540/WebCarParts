@@ -8,8 +8,24 @@ const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
-  origin: 'https://webcarpartss.onrender.com/', 
-  credentials: true
+    origin: function (origin, callback) {
+        // Danh sách origins được phép
+        const allowedOrigins = [
+            'https://webcarparts.onrender.com',
+            'https://webcarparts.onrender.com/',  // Thêm cả 2 để an toàn
+            'http://localhost:3000',
+            'http://localhost:5173'
+        ];
+        
+        // Nếu origin không tồn tại (gọi từ Postman, server) hoặc nằm trong danh sách
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes(origin + '/')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    optionsSuccessStatus: 200
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
