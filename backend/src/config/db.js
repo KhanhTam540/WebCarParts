@@ -8,7 +8,7 @@ const pool = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME || 'defaultdb',
-    port: process.env.DB_PORT || 24744,
+    port: process.env.DB_PORT || 26150,
     ssl: {
         // Đọc file cert từ thư mục certs hoặc dùng cấu hình từ Render
         ca: process.env.DB_SSL_CA || (fs.existsSync(path.join(__dirname, '../../certs/ca.pem')) 
