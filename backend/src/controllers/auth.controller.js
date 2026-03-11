@@ -55,20 +55,23 @@ const register = async (req, res) => {
     );
 
     try {
-      await transporter.sendMail({
+    await transporter.sendMail({
         from: `"Car Parts Store" <${process.env.MAIL_USER}>`,
         to: email,
-        subject: 'Xác thực tài khoản - Mã OTP',
-        html: `
-          <h2>Xin chào ${username}!</h2>
-          <p>Mã OTP xác thực tài khoản của bạn là:</p>
-          <h1 style="color: #2563eb; letter-spacing: 8px;">${otpCode}</h1>
-          <p>Mã có hiệu lực trong <strong>10 phút</strong>.</p>
-        `
-      });
-    } catch (mailErr) {
-      console.error('Mail error:', mailErr.message);
-    }
+        subject: 'Xác thực OTP',
+        html: `<b>Mã của bạn là: ${otpCode}</b>`
+    });
+    console.log("✅ Gửi mail thành công");
+} catch (error) {
+    // Nếu timeout, chỉ log lỗi chứ không trả về lỗi 500 cho khách hàng
+    console.error("❌ Lỗi Mail (Timeout):", error.message);
+}
+
+// Luôn trả về thành công sau khi đã lưu User vào Database thành công
+res.status(201).json({
+    success: true,
+    message: 'Đăng ký thành công (OTP đã được xử lý)'
+});
 
     res.status(201).json({
       success: true,
