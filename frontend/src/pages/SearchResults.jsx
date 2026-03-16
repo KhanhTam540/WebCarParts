@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import ProductCard from '../components/common/ProductCard';
+import ProductCard from '../components/Common/ProductCard';
 import VinSearch from '../components/Filters/VinSearch';
 import ImageSearch from '../components/Filters/ImageSearch';
 import productApi from '../api/productApi';

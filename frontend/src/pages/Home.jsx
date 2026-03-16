@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProductCard from '../components/Common/ProductCard';
-import VehicleFilter from '../components/filters/VehicleFilter';
+import VehicleFilter from '../components/Filters/VehicleFilter';
 import VinSearch from '../components/Filters/VinSearch';
 import productApi from '../api/productApi';
 import { ChevronRight, Shield, Truck, RefreshCw, Award, Car, Hash } from 'lucide-react';
