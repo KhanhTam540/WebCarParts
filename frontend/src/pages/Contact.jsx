@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Phone, 
   Mail, 
@@ -36,6 +37,7 @@ const Contact = () => {
     e.preventDefault();
     setLoading(true);
     
+    // Simulate API call
     setTimeout(() => {
       setLoading(false);
       setSubmitted(true);
@@ -48,6 +50,7 @@ const Contact = () => {
         message: ''
       });
       
+      // Reset submitted state after 5 seconds
       setTimeout(() => setSubmitted(false), 5000);
     }, 1500);
   };
@@ -70,9 +73,8 @@ const Contact = () => {
     {
       icon: MapPin,
       title: 'Địa chỉ',
-      // Cập nhật địa chỉ mới tại đây
-      content: 'Tòa BS15 - The Oasis',
-      detail: 'Vinhomes Grand Park, Thủ Đức, TP. HCM',
+      content: '123 Nguyễn Văn Linh, Quận 7',
+      detail: 'TP. Hồ Chí Minh',
       color: 'purple'
     },
     {
@@ -147,32 +149,27 @@ const Contact = () => {
 
         {/* Map and Contact Form */}
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Map Section */}
+          {/* Map */}
           <div className="bg-white p-6 rounded-[32px] shadow-xl">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               <MapPin className="text-blue-600" />
               Vị trí của chúng tôi
             </h2>
             <div className="rounded-2xl overflow-hidden h-96">
-              {/* Cập nhật Iframe Google Map theo tọa độ Vinhomes Grand Park */}
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.520265287515!2d106.837561!3d10.847992!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752119f3908869%3A0x6a02b4d990b79339!2sVinhomes%20Grand%20Park!5e0!3m2!1svi!2svn!4v1709123456789!5m2!1svi!2svn"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.6693614700587!2d106.69533611480078!3d10.759849992332!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752fbf1c4c4c4d%3A0x3b7f1c7b1c7b1c7b!2zMTIzIMSQLiBOZ3V54buFbiBWxINuIExpbmgsIFF14bqtbiA3LCBUaMOgbmggcGjhu5EgSOG7kyBDaMOtIE1pbmgsIFZp4buHdCBOYW0!5e0!3m2!1svi!2s!4v1620000000000!5m2!1svi!2s"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="AutoParts Location - Vinhomes Grand Park"
+                title="AutoParts Location"
                 className="w-full h-full"
               />
             </div>
 
+            {/* Social Links */}
             <div className="mt-6">
-              <h3 className="font-bold mb-2">Chi tiết địa chỉ:</h3>
-              <p className="text-slate-600 mb-4 text-sm italic">
-                Tòa BS15 - The Oasis - Vinhomes Grand Park, Phước Thiện, Long Bình, Thành phố Thủ Đức, TP. Hồ Chí Minh.
-              </p>
               <h3 className="font-bold mb-4">Kết nối với chúng tôi</h3>
               <div className="flex items-center gap-3">
                 <a href="#" className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors">
@@ -306,7 +303,52 @@ const Contact = () => {
             )}
           </div>
         </div>
-        {/* ... (Các phần FAQ và CTA giữ nguyên như code cũ) */}
+
+        {/* FAQ Section */}
+        <div className="bg-white p-12 rounded-[40px] shadow-xl">
+          <h2 className="text-3xl font-black text-center mb-4">Câu hỏi thường gặp</h2>
+          <p className="text-center text-slate-500 mb-12 max-w-2xl mx-auto">
+            Những câu hỏi thường gặp về sản phẩm và dịch vụ của AutoParts
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {faqs.map((faq, index) => (
+              <div key={index} className="bg-slate-50 p-6 rounded-2xl hover:shadow-md transition-all">
+                <h3 className="font-bold text-lg mb-3 flex items-start gap-2">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm flex-shrink-0 mt-1">
+                    {index + 1}
+                  </span>
+                  <span>{faq.question}</span>
+                </h3>
+                <p className="text-slate-500 text-sm pl-8">{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-12 rounded-[40px] text-center">
+          <h2 className="text-3xl font-black mb-4">Cần hỗ trợ khẩn cấp?</h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Đội ngũ tư vấn viên của chúng tôi luôn sẵn sàng hỗ trợ bạn 24/7
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="tel:19001234"
+              className="flex items-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-xl font-bold hover:bg-slate-50 transition-colors"
+            >
+              <Phone size={20} />
+              GỌI NGAY 1900 1234
+            </a>
+            <a
+              href="mailto:support@autoparts.vn"
+              className="flex items-center gap-2 px-8 py-4 border-2 border-white text-white rounded-xl font-bold hover:bg-white hover:text-blue-600 transition-colors"
+            >
+              <Mail size={20} />
+              GỬI EMAIL
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

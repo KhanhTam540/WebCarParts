@@ -1,73 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, ChevronRight, Heart } from 'lucide-react';
+import { ShoppingCart, ChevronRight, GitCompareArrows } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import cartApi from '../../api/cartApi';
-import wishlistApi from '../../api/wishlistApi';
-import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const ProductCard = ({ part, onAddToCart }) => {
-  const { isAuthenticated } = useAuth();
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteId, setFavoriteId] = useState(null);
-  const [togglingFavorite, setTogglingFavorite] = useState(false);
+  const [isCompared, setIsCompared] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      checkWishlistStatus();
+    const saved = localStorage.getItem('compareIds');
+    if (saved) {
+      try {
+        const ids = JSON.parse(saved);
+        setIsCompared(ids.includes(part.id));
+      } catch (e) {}
     }
-  }, [isAuthenticated, part.id]);
-
-  const checkWishlistStatus = async () => {
-    try {
-      const res = await wishlistApi.checkWishlist(part.id);
-      setIsFavorite(res.data.data.is_favorite);
-      setFavoriteId(res.data.data.wishlist_id);
-    } catch (error) {
-      console.error('Failed to check wishlist status:', error);
-    }
-  };
-
-  const handleToggleFavorite = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isAuthenticated) {
-      toast.error('Vui lòng đăng nhập để thêm vào yêu thích');
-      return;
-    }
-
-    setTogglingFavorite(true);
-    try {
-      if (isFavorite) {
-        await wishlistApi.removeFromWishlist(favoriteId);
-        setIsFavorite(false);
-        setFavoriteId(null);
-        toast.success('Đã xóa khỏi danh sách yêu thích');
-      } else {
-        const res = await wishlistApi.addToWishlist(part.id);
-        setIsFavorite(true);
-        setFavoriteId(res.data.data.id);
-        toast.success('Đã thêm vào danh sách yêu thích');
-      }
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-      toast.error('Thao tác thất bại');
-    } finally {
-      setTogglingFavorite(false);
-    }
-  };
+  }, [part.id]);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
-    e.stopPropagation();
-    
-    if (!isAuthenticated) {
-      toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng');
-      return;
-    }
-
     try {
       await cartApi.addToCart({ part_id: part.id, quantity: 1 });
       toast.success('Đã thêm vào giỏ hàng');
@@ -77,8 +29,47 @@ const ProductCard = ({ part, onAddToCart }) => {
     }
   };
 
+  const toggleCompare = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const saved = localStorage.getItem('compareIds');
+    let ids = [];
+    try { ids = saved ? JSON.parse(saved) : []; } catch (e) {}
+    
+    if (isCompared) {
+      ids = ids.filter(id => id !== part.id);
+      if (ids.length === 0) {
+        localStorage.removeItem('compareCategoryId');
+      }
+      toast.success('Đã bỏ khỏi so sánh');
+    } else {
+      if (ids.length >= 4) {
+        toast.error('Tối đa 4 sản phẩm so sánh');
+        return;
+      }
+
+      const compareCategoryId = localStorage.getItem('compareCategoryId');
+      if (ids.length > 0 && compareCategoryId && Number(compareCategoryId) !== part.category_id) {
+        toast.error('Chỉ có thể so sánh các sản phẩm cùng danh mục');
+        return;
+      }
+
+      if (ids.length === 0) {
+        localStorage.setItem('compareCategoryId', part.category_id.toString());
+      }
+
+      ids.push(part.id);
+      toast.success('Đã thêm vào so sánh');
+    }
+    
+    localStorage.setItem('compareIds', JSON.stringify(ids));
+    setIsCompared(!isCompared);
+    // Dispatch event để Header cập nhật badge
+    window.dispatchEvent(new Event('compareUpdate'));
+  };
+
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 group relative">
+    <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 group">
       <Link to={`/product/${part.id}`}>
         <div className="relative h-56 bg-gray-50 overflow-hidden">
           <img
@@ -91,15 +82,17 @@ const ProductCard = ({ part, onAddToCart }) => {
               {part.category_name}
             </span>
           </div>
+          {/* Compare toggle */}
           <button
-            onClick={handleToggleFavorite}
-            disabled={togglingFavorite}
-            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-red-50 transition-all disabled:opacity-50 shadow-sm z-10"
+            onClick={toggleCompare}
+            className={`absolute top-4 right-4 p-2 rounded-xl shadow-sm transition-all ${
+              isCompared 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white/90 backdrop-blur-sm text-slate-500 hover:text-blue-600'
+            }`}
+            title={isCompared ? 'Bỏ so sánh' : 'Thêm so sánh'}
           >
-            <Heart 
-              size={20} 
-              className={isFavorite ? 'text-red-500 fill-current' : 'text-slate-400'} 
-            />
+            <GitCompareArrows size={16} />
           </button>
           {part.stock_quantity <= 0 && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">

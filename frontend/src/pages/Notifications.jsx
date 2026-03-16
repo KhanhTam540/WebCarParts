@@ -14,8 +14,7 @@ import {
   Trash2,
   CheckCheck,
   ArrowLeft,
-  Loader,
-  Eye
+  Loader
 } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
@@ -51,7 +50,7 @@ const Notifications = () => {
     try {
       await notificationApi.markAsRead(id);
       setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
       );
     } catch (error) {
       console.error('Failed to mark as read:', error);
@@ -62,7 +61,7 @@ const Notifications = () => {
     try {
       await notificationApi.markAllAsRead();
       setNotifications(prev =>
-        prev.map(n => ({ ...n, is_read: true }))
+        prev.map(n => ({ ...n, read: true }))
       );
       toast.success('Đã đánh dấu tất cả là đã đọc');
     } catch (error) {
@@ -114,12 +113,12 @@ const Notifications = () => {
   };
 
   const filteredNotifications = notifications.filter(n => {
-    if (filter === 'unread') return !n.is_read;
-    if (filter === 'read') return n.is_read;
+    if (filter === 'unread') return !n.read;
+    if (filter === 'read') return n.read;
     return true;
   });
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   if (loading) {
     return (
@@ -228,22 +227,16 @@ const Notifications = () => {
         ) : (
           <div className="space-y-4">
             {filteredNotifications.map((notif) => (
-              <Link
+              <div
                 key={notif.id}
-                to={`/notifications/${notif.id}`}
-                className={`block bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all ${
-                  !notif.is_read ? 'border-l-4 border-l-blue-500' : ''
+                className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all ${
+                  !notif.read ? 'border-l-4 border-l-blue-500' : ''
                 }`}
-                onClick={() => {
-                  if (!notif.is_read) {
-                    markAsRead(notif.id);
-                  }
-                }}
               >
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                      !notif.is_read ? 'bg-blue-50' : 'bg-slate-50'
+                      !notif.read ? 'bg-blue-50' : 'bg-slate-50'
                     }`}>
                       {getNotificationIcon(notif.type)}
                     </div>
@@ -251,18 +244,24 @@ const Notifications = () => {
                   
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className={`text-lg ${!notif.is_read ? 'font-bold' : 'font-medium'}`}>
+                      <div>
+                        <h3 className={`text-lg ${!notif.read ? 'font-bold' : 'font-medium'}`}>
                           {notif.title}
                         </h3>
-                        <p className="text-slate-600 mt-1 line-clamp-2">{notif.message}</p>
+                        <p className="text-slate-600 mt-1">{notif.message}</p>
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
+                      <div className="flex items-center gap-2">
+                        {!notif.read && (
+                          <button
+                            onClick={() => markAsRead(notif.id)}
+                            className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"
+                            title="Đánh dấu đã đọc"
+                          >
+                            <CheckCheck size={16} />
+                          </button>
+                        )}
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            deleteNotification(notif.id);
-                          }}
+                          onClick={() => deleteNotification(notif.id)}
                           className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -274,7 +273,7 @@ const Notifications = () => {
                     <div className="flex items-center gap-3 text-sm text-slate-400">
                       <Clock size={14} />
                       <span>{formatDate(notif.created_at)}</span>
-                      {notif.is_read ? (
+                      {notif.read ? (
                         <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs">
                           Đã đọc
                         </span>
@@ -284,9 +283,21 @@ const Notifications = () => {
                         </span>
                       )}
                     </div>
+
+                    {/* Action buttons based on notification type */}
+                    {notif.type === 'order_created' && (
+                      <div className="mt-4">
+                        <Link
+                          to={`/orders/${notif.data?.orderId}`}
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          Xem đơn hàng →
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

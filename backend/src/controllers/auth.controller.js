@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const db = require('../config/db');
 
-// Email transporter (giữ nguyên để gửi mail thông báo)
+// Email transporter
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
   port: process.env.MAIL_PORT,
@@ -11,112 +11,104 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false 
-  },
-  connectionTimeout: 5000,
+  }
 });
 
-// ==================== REGISTER - KHÔNG CẦN OTP ====================
-exports.register = async (req, res) => {
-  const { username, password, email, full_name, phone, address } = req.body;
-  
-  try {
-    console.log('📝 Register attempt:', { username, email, full_name });
+// Generate 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
-    // 1. Kiểm tra username đã tồn tại chưa
-    const [existingUsers] = await db.query(
+// ==================== REGISTER ====================
+const register = async (req, res) => {
+  try {
+    const { username, password, email } = req.body;
+
+    const [existing] = await db.query(
       'SELECT id FROM users WHERE username = ? OR email = ?',
       [username, email]
     );
-
-    if (existingUsers.length > 0) {
-      const existing = existingUsers[0];
-      let message = 'Username or email already exists';
-      
-      // Kiểm tra cụ thể hơn
-      const [checkUsername] = await db.query('SELECT id FROM users WHERE username = ?', [username]);
-      const [checkEmail] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
-      
-      if (checkUsername.length > 0) message = 'Username already exists';
-      if (checkEmail.length > 0) message = 'Email already exists';
-      
-      return res.status(400).json({ 
-        success: false, 
-        message 
-      });
+    if (existing.length > 0) {
+      return res.status(409).json({ success: false, message: 'Username or email already exists' });
     }
 
-    // 2. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('✅ Password hashed');
 
-    // 3. Chèn user với is_active = 1 (KHÔNG CẦN XÁC THỰC)
-    const [userResult] = await db.query(
-      'INSERT INTO users (username, password, email, full_name, phone, address, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [username, hashedPassword, email, full_name || null, phone || null, address || null, 1] // is_active = 1
+    const [result] = await db.query(
+      'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
+      [username, hashedPassword, email]
+    );
+    const userId = result.insertId;
+
+    await db.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, 2)', [userId]);
+
+    const otpCode = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); 
+
+    await db.query(
+      'INSERT INTO otp_verifications (user_id, otp_code, expires_at) VALUES (?, ?, ?)',
+      [userId, otpCode, expiresAt]
     );
 
-    const userId = userResult.insertId;
-    console.log('✅ User inserted with ID:', userId);
-
-    // 4. Gán role mặc định là 'user' (role_id = 2)
-    await db.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)', [userId, 2]);
-    console.log('✅ User role assigned');
-
-    // 5. Gửi email thông báo (KHÔNG BẮT BUỘC - không ảnh hưởng đến đăng ký)
     try {
-      const mailOptions = {
-        from: `"WebCarParts" <${process.env.MAIL_USER}>`,
+      await transporter.sendMail({
+        from: `"Car Parts Store" <${process.env.MAIL_USER}>`,
         to: email,
-        subject: 'Đăng ký tài khoản thành công',
+        subject: 'Xác thực tài khoản - Mã OTP',
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #4CAF50;">Chào mừng bạn đến với WebCarParts!</h2>
-            <p>Xin chào <strong>${full_name || username}</strong>,</p>
-            <p>Tài khoản của bạn đã được tạo thành công và đã được kích hoạt.</p>
-            <p>Bạn có thể đăng nhập ngay bây giờ với thông tin:</p>
-            <ul>
-              <li><strong>Username:</strong> ${username}</li>
-              <li><strong>Email:</strong> ${email}</li>
-            </ul>
-            <p>Truy cập: <a href="https://webcarparts.onrender.com">https://webcarparts.onrender.com</a></p>
-            <hr>
-            <p style="color: #666;">Nếu bạn không đăng ký tài khoản này, vui lòng bỏ qua email này.</p>
-          </div>
+          <h2>Xin chào ${username}!</h2>
+          <p>Mã OTP xác thực tài khoản của bạn là:</p>
+          <h1 style="color: #2563eb; letter-spacing: 8px;">${otpCode}</h1>
+          <p>Mã có hiệu lực trong <strong>10 phút</strong>.</p>
         `
-      };
-
-      await transporter.sendMail(mailOptions);
-      console.log('✅ Welcome email sent to:', email);
-    } catch (mailError) {
-      // Chỉ log lỗi, không ảnh hưởng đến response
-      console.error('⚠️ Welcome email failed (non-critical):', mailError.message);
+      });
+    } catch (mailErr) {
+      console.error('Mail error:', mailErr.message);
     }
 
-    // 6. Trả về thành công
     res.status(201).json({
       success: true,
-      message: 'Đăng ký thành công! Bạn có thể đăng nhập ngay.',
-      data: {
-        username,
-        email,
-        full_name: full_name || null
-      }
+      message: 'Registration successful. Please check your email for OTP verification.',
+      data: { userId, username, email }
     });
-
   } catch (error) {
-    console.error('❌ Register error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Đã có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại sau.' 
-    });
+    console.error('Register error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-// ==================== LOGIN ====================
-exports.login = async (req, res) => {
+// ==================== VERIFY OTP ====================
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp_code } = req.body;
+
+    const [users] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const userId = users[0].id;
+
+    const [otps] = await db.query(
+      'SELECT id FROM otp_verifications WHERE user_id = ? AND otp_code = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+      [userId, otp_code]
+    );
+
+    if (otps.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    await db.query('UPDATE users SET is_active = TRUE WHERE id = ?', [userId]);
+    await db.query('DELETE FROM otp_verifications WHERE user_id = ?', [userId]);
+
+    res.json({ success: true, message: 'Account verified successfully. You can now login.' });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// ==================== LOGIN (SỬA QUAN TRỌNG) ====================
+const login = async (req, res) => {
   try {
     const { username, password } = req.body;
     
@@ -125,72 +117,83 @@ exports.login = async (req, res) => {
     console.log('Username:', username);
     console.log('Time:', new Date().toISOString());
 
-    // Lấy user info cùng với roles
+    // Sử dụng GROUP_CONCAT để lấy tất cả roles của user
     const [users] = await db.query(
       `SELECT u.id, u.username, u.password, u.email, u.full_name, u.is_active,
               GROUP_CONCAT(r.name) as roles
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        LEFT JOIN roles r ON ur.role_id = r.id
-       WHERE u.username = ? OR u.email = ?
+       WHERE u.username = ?
        GROUP BY u.id`,
-      [username, username]
+      [username]
     );
 
+    console.log(`Found ${users.length} user(s) with this username`);
+
     if (users.length === 0) {
-      console.log('❌ User not found');
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Sai tên đăng nhập hoặc mật khẩu' 
-      });
+      console.log('❌ User not found in database');
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
 
     const user = users[0];
     
-    // Kiểm tra active (với register mới thì luôn active)
-    if (!user.is_active) {
-      console.log('❌ Account not active');
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Tài khoản chưa được kích hoạt. Vui lòng liên hệ admin.' 
-      });
-    }
-
-    // Kiểm tra password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      console.log('❌ Password incorrect');
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Sai tên đăng nhập hoặc mật khẩu' 
-      });
-    }
-
-    // Xác định role
+    // Xác định role từ database
     let role = 'user';
     if (user.roles) {
       const rolesList = user.roles.split(',');
+      // Nếu có role admin trong danh sách, ưu tiên admin
       role = rolesList.includes('admin') ? 'admin' : rolesList[0] || 'user';
     }
+    
+    console.log('📊 User details:');
+    console.log('  - ID:', user.id);
+    console.log('  - Username:', user.username);
+    console.log('  - Email:', user.email);
+    console.log('  - Is Active:', user.is_active);
+    console.log('  - Roles from DB:', user.roles);
+    console.log('  - Selected Role:', role);
+    console.log('  - Password Hash Length:', user.password.length);
 
-    // Tạo token
+    if (!user.is_active) {
+      console.log('❌ Account is not active');
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Account not verified or has been locked. Please verify your email first or contact admin.' 
+      });
+    }
+
+    console.log('🔑 Comparing password...');
+    const isMatch = await bcrypt.compare(password, user.password);
+    
+    console.log('Password match result:', isMatch);
+
+    if (!isMatch) {
+      console.log('❌ Password incorrect');
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+    }
+
+    console.log('✅ Password correct!');
+
+    // Tạo JWT token với role đã xác định
     const token = jwt.sign(
       { 
         userId: user.id, 
         username: user.username,
         email: user.email,
-        role: role
+        role: role  // QUAN TRỌNG: role phải được đưa vào token
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
-    console.log('✅ Login successful for:', username);
+    console.log('✅ Login successful!');
     console.log('=================================');
 
+    // Trả về đầy đủ thông tin user bao gồm role
     res.json({
       success: true,
-      message: 'Đăng nhập thành công',
+      message: 'Login successful',
       data: {
         token,
         user: {
@@ -198,70 +201,16 @@ exports.login = async (req, res) => {
           username: user.username,
           email: user.email,
           full_name: user.full_name,
-          role: role,
-          is_active: true
+          role: role,  // QUAN TRỌNG: role phải được trả về
+          is_active: user.is_active === 1 || user.is_active === true
         }
       }
     });
-
   } catch (error) {
-    console.error('❌ Login error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Lỗi server. Vui lòng thử lại sau.' 
-    });
-  }
-};
-
-// ==================== VERIFY OTP (KHÔNG CÒN DÙNG) ====================
-// Giữ lại để tránh lỗi nếu route vẫn còn, nhưng trả về thông báo
-exports.verifyOtp = async (req, res) => {
-  res.status(400).json({ 
-    success: false, 
-    message: 'Xác thực OTP không còn được sử dụng. Bạn có thể đăng nhập trực tiếp.' 
-  });
-};
-
-// ==================== GET CURRENT USER ====================
-exports.getCurrentUser = async (req, res) => {
-  try {
-    const [users] = await db.query(
-      `SELECT u.id, u.username, u.email, u.full_name, u.phone, u.address, u.is_active,
-              GROUP_CONCAT(r.name) as roles
-       FROM users u
-       LEFT JOIN user_roles ur ON u.id = ur.user_id
-       LEFT JOIN roles r ON ur.role_id = r.id
-       WHERE u.id = ?
-       GROUP BY u.id`,
-      [req.user.userId]
-    );
-
-    if (users.length === 0) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const user = users[0];
-    let role = 'user';
-    if (user.roles) {
-      const rolesList = user.roles.split(',');
-      role = rolesList.includes('admin') ? 'admin' : rolesList[0] || 'user';
-    }
-
-    res.json({
-      success: true,
-      data: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        full_name: user.full_name,
-        phone: user.phone,
-        address: user.address,
-        role: role,
-        is_active: user.is_active === 1
-      }
-    });
-  } catch (error) {
-    console.error('Get current user error:', error);
+    console.error('❌ Login error details:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+module.exports = { register, verifyOtp, login };

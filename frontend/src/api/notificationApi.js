@@ -4,14 +4,16 @@ const notificationApi = {
   // Lấy tất cả thông báo
   getNotifications: () => axiosClient.get('/notifications'),
   
-  // Lấy chi tiết 1 thông báo
-  getNotificationById: (id) => axiosClient.get(`/notifications/${id}`),
-  
   // Lấy thông báo chưa đọc
   getUnreadNotifications: () => axiosClient.get('/notifications/unread'),
   
   // Đánh dấu đã đọc 1 thông báo
-  markAsRead: (id) => axiosClient.put(`/notifications/${id}/read`),
+  markAsRead: async (id) => {
+    console.log('API - Mark as read:', id);
+    const response = await axiosClient.put(`/notifications/${id}/read`);
+    console.log('API - Mark as read response:', response);
+    return response;
+  },
   
   // Đánh dấu tất cả đã đọc
   markAllAsRead: () => axiosClient.put('/notifications/read-all'),

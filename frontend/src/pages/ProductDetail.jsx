@@ -2,20 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import productApi from '../api/productApi';
 import cartApi from '../api/cartApi';
-import wishlistApi from '../api/wishlistApi';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency } from '../utils/formatters';
-import { 
-  CheckCircle, 
-  ShoppingCart, 
-  Shield, 
-  Truck, 
-  Clock, 
-  ChevronLeft, 
-  Plus, 
-  Minus,
-  Heart
-} from 'lucide-react';
+import { CheckCircle, ShoppingCart, Shield, Truck, Clock, ChevronLeft, Plus, Minus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ProductDetail = () => {
@@ -26,19 +15,10 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteId, setFavoriteId] = useState(null);
-  const [togglingFavorite, setTogglingFavorite] = useState(false);
 
   useEffect(() => {
     fetchProduct();
   }, [id]);
-
-  useEffect(() => {
-    if (isAuthenticated && part) {
-      checkWishlistStatus();
-    }
-  }, [isAuthenticated, part]);
 
   const fetchProduct = async () => {
     try {
@@ -49,44 +29,6 @@ const ProductDetail = () => {
       navigate('/');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const checkWishlistStatus = async () => {
-    try {
-      const res = await wishlistApi.checkWishlist(id);
-      setIsFavorite(res.data.data.is_favorite);
-      setFavoriteId(res.data.data.wishlist_id);
-    } catch (error) {
-      console.error('Failed to check wishlist status:', error);
-    }
-  };
-
-  const handleToggleFavorite = async () => {
-    if (!isAuthenticated) {
-      toast.error('Vui lòng đăng nhập để thêm vào yêu thích');
-      navigate('/login');
-      return;
-    }
-
-    setTogglingFavorite(true);
-    try {
-      if (isFavorite) {
-        await wishlistApi.removeFromWishlist(favoriteId);
-        setIsFavorite(false);
-        setFavoriteId(null);
-        toast.success('Đã xóa khỏi danh sách yêu thích');
-      } else {
-        const res = await wishlistApi.addToWishlist(parseInt(id));
-        setIsFavorite(true);
-        setFavoriteId(res.data.data.id);
-        toast.success('Đã thêm vào danh sách yêu thích');
-      }
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-      toast.error('Thao tác thất bại');
-    } finally {
-      setTogglingFavorite(false);
     }
   };
 
@@ -140,22 +82,12 @@ const ProductDetail = () => {
         <div className="grid lg:grid-cols-2 gap-16 items-start">
           {/* Product Image */}
           <div className="space-y-4">
-            <div className="rounded-[40px] overflow-hidden bg-slate-100 aspect-square relative group">
+            <div className="rounded-[40px] overflow-hidden bg-slate-100 aspect-square">
               <img
                 src={part.image_url || 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&q=80&w=500'}
                 className="w-full h-full object-cover"
                 alt={part.name}
               />
-              <button
-                onClick={handleToggleFavorite}
-                disabled={togglingFavorite}
-                className="absolute top-6 right-6 w-14 h-14 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center hover:bg-red-50 transition-all disabled:opacity-50 shadow-lg"
-              >
-                <Heart 
-                  size={28} 
-                  className={isFavorite ? 'text-red-500 fill-current' : 'text-slate-400'} 
-                />
-              </button>
             </div>
           </div>
 

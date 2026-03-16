@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import authApi from '../../api/authApi';
-import { UserPlus, Mail, Lock, User, CheckCircle } from 'lucide-react';
+import { UserPlus, Mail, Lock, ShieldCheck, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Register = () => {
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
     confirm_password: '',
-    full_name: '', // Thêm trường họ tên
-    phone: '', // Thêm trường số điện thoại
-    address: '' // Thêm trường địa chỉ
   });
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [registerSuccess, setRegisterSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -31,210 +29,183 @@ const Register = () => {
       return false;
     }
     
-    // Optional: Bỏ validate password phức tạp nếu không cần
-    if (formData.password.length < 6) {
-      toast.error('Mật khẩu phải có ít nhất 6 ký tự');
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      toast.error('Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt');
       return false;
     }
     
-    return true;
-  };
-
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error('Email không hợp lệ');
-      return false;
-    }
     return true;
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    
-    // Validate cơ bản
-    if (!formData.username.trim()) {
-      toast.error('Vui lòng nhập tên đăng nhập');
-      return;
-    }
-    
-    if (!validateEmail(formData.email)) return;
-    
     if (!validatePassword()) return;
 
     setLoading(true);
-    
     try {
-      // Gửi đầy đủ thông tin lên backend
-      const response = await authApi.register({
+      await authApi.register({
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        full_name: formData.full_name || null,
-        phone: formData.phone || null,
-        address: formData.address || null
       });
-
-      console.log('Register response:', response.data);
-      
-      // Hiển thị thông báo thành công
-      toast.success('Đăng ký thành công! Bạn có thể đăng nhập ngay.', {
-        duration: 5000,
-        icon: '🎉'
-      });
-      
-      // Đặt trạng thái thành công để hiển thị thông báo
-      setRegisterSuccess(true);
-      
-      // Chuyển hướng về trang đăng nhập sau 2 giây
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-      
+      setStep(2);
+      toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực OTP');
     } catch (error) {
-      console.error('Register error:', error);
-      
-      // Xử lý lỗi từ backend
-      const errorMessage = error.response?.data?.message || 
-                          error.message || 
-                          'Đăng ký không thành công. Vui lòng thử lại.';
-      
-      toast.error(errorMessage, {
-        duration: 4000
-      });
+      toast.error(error.response?.data?.message || 'Đăng ký không thành công');
     } finally {
       setLoading(false);
     }
   };
 
-  // Nếu đăng ký thành công, hiển thị thông báo
-  if (registerSuccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4">
-        <div className="max-w-md w-full bg-white rounded-[32px] p-10 shadow-xl border border-gray-100 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-10 h-10 text-green-600" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">
-            ĐĂNG KÝ THÀNH CÔNG!
-          </h2>
-          <p className="text-slate-600 mb-6">
-            Tài khoản <strong>{formData.username}</strong> đã được tạo thành công.
-            <br />
-            Bạn có thể đăng nhập ngay bây giờ.
-          </p>
-          <div className="animate-pulse text-sm text-slate-400">
-            Đang chuyển hướng đến trang đăng nhập...
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await authApi.verifyOtp({
+        email: formData.email,
+        otp_code: otp,
+      });
+      toast.success('Xác thực thành công! Hãy đăng nhập.');
+      navigate('/login');
+    } catch (error) {
+      toast.error('Mã OTP không đúng hoặc đã hết hạn');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      // Gọi API resend OTP
+      toast.success('Mã OTP đã được gửi lại');
+    } catch (error) {
+      toast.error('Gửi lại OTP thất bại');
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4">
       <div className="max-w-md w-full bg-white rounded-[32px] p-10 shadow-xl border border-gray-100">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-black text-slate-900">
-            ĐĂNG KÝ TÀI KHOẢN
+            {step === 1 ? 'TẠO TÀI KHOẢN' : 'XÁC THỰC EMAIL'}
           </h2>
-          <p className="text-slate-500 mt-2">
-            Nhập thông tin để tạo tài khoản mới
-          </p>
+          {step === 2 && (
+            <p className="text-slate-500 mt-2">
+              Chúng tôi đã gửi mã OTP gồm 6 chữ số đến {formData.email}
+            </p>
+          )}
         </div>
 
-        <form onSubmit={handleRegister} className="space-y-4">
-          {/* Username */}
-          <div className="relative">
-            <User className="absolute left-4 top-4 text-slate-400" size={20} />
-            <input
-              type="text"
-              name="username"
-              placeholder="Tên đăng nhập *"
-              value={formData.username}
-              onChange={handleChange}
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
-              required
-              minLength={3}
-              maxLength={50}
-            />
-          </div>
+        {step === 1 ? (
+          <form onSubmit={handleRegister} className="space-y-6">
+            <div className="relative">
+              <User className="absolute left-4 top-4 text-slate-400" size={20} />
+              <input
+                type="text"
+                name="username"
+                placeholder="Tên đăng nhập"
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                minLength={3}
+              />
+            </div>
 
-          {/* Email */}
-          <div className="relative">
-            <Mail className="absolute left-4 top-4 text-slate-400" size={20} />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email *"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div> 
-          {/* Password */}
-          <div className="relative">
-            <Lock className="absolute left-4 top-4 text-slate-400" size={20} />
-            <input
-              type="password"
-              name="password"
-              placeholder="Mật khẩu *"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
-              required
-              minLength={6}
-            />
-          </div>
+            <div className="relative">
+              <Mail className="absolute left-4 top-4 text-slate-400" size={20} />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email của bạn"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
 
-          {/* Confirm Password */}
-          <div className="relative">
-            <Lock className="absolute left-4 top-4 text-slate-400" size={20} />
-            <input
-              type="password"
-              name="confirm_password"
-              placeholder="Xác nhận mật khẩu *"
-              value={formData.confirm_password}
-              onChange={handleChange}
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-4 text-slate-400" size={20} />
+              <input
+                type="password"
+                name="password"
+                placeholder="Mật khẩu"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                minLength={8}
+              />
+            </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <UserPlus size={20} />
-            {loading ? 'ĐANG XỬ LÝ...' : 'ĐĂNG KÝ'}
-          </button>
+            <div className="relative">
+              <Lock className="absolute left-4 top-4 text-slate-400" size={20} />
+              <input
+                type="password"
+                name="confirm_password"
+                placeholder="Xác nhận mật khẩu"
+                value={formData.confirm_password}
+                onChange={handleChange}
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
 
-          {/* Thông báo bảo mật */}
-          <p className="text-xs text-slate-400 text-center mt-4">
-            Bằng việc đăng ký, bạn đồng ý với{' '}
-            <Link to="/terms" className="text-blue-600 hover:underline">
-              Điều khoản dịch vụ
-            </Link>{' '}
-            và{' '}
-            <Link to="/privacy" className="text-blue-600 hover:underline">
-              Chính sách bảo mật
-            </Link>{' '}
-            của chúng tôi.
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 transition-all disabled:opacity-50"
+            >
+              <UserPlus size={20} />
+              {loading ? 'ĐANG XỬ LÝ...' : 'TIẾP TỤC'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerify} className="space-y-6">
+            <div className="relative">
+              <ShieldCheck className="absolute left-4 top-4 text-slate-400" size={20} />
+              <input
+                type="text"
+                placeholder="Nhập mã OTP 6 số"
+                maxLength="6"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-[10px]"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold hover:bg-green-700 transition-all disabled:opacity-50"
+            >
+              {loading ? 'ĐANG XÁC THỰC...' : 'XÁC THỰC TÀI KHOẢN'}
+            </button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Gửi lại mã OTP
+              </button>
+            </div>
+          </form>
+        )}
+
+        {step === 1 && (
+          <p className="text-center mt-8 text-slate-600">
+            Đã có tài khoản?{' '}
+            <Link to="/login" className="text-blue-600 font-bold hover:underline">
+              Đăng nhập
+            </Link>
           </p>
-        </form>
-
-        {/* Login Link */}
-        <p className="text-center mt-8 text-slate-600">
-          Đã có tài khoản?{' '}
-          <Link to="/login" className="text-blue-600 font-bold hover:underline">
-            Đăng nhập ngay
-          </Link>
-        </p>
+        )}
       </div>
     </div>
   );

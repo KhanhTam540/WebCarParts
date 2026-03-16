@@ -3,7 +3,6 @@ const router = express.Router();
 const { verifyToken } = require('../middlewares/auth');
 const {
   getNotifications,
-  getNotificationById,
   getUnreadNotifications,
   getUnreadCount,
   markAsRead,
@@ -19,7 +18,6 @@ router.use(verifyToken);
 router.get('/', getNotifications);
 router.get('/unread', getUnreadNotifications);
 router.get('/unread/count', getUnreadCount);
-router.get('/:id', getNotificationById);
 
 // PUT routes
 router.put('/:id/read', markAsRead);

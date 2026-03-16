@@ -78,7 +78,7 @@ const Footer = () => {
             <ul className="space-y-4">
               <li className="flex items-start gap-3 text-slate-400">
                 <MapPin size={20} className="shrink-0 mt-1" />
-                <span>Địa chỉ: Tòa BS15 -The Oasis - Vinhomes Grand Park, Phước Thiện, Long Bình, Thành phố Thủ Đức - Thành phố Hồ Chí Minh</span>
+                <span>123 Nguyễn Văn Linh, Quận 7, TP.HCM</span>
               </li>
               <li className="flex items-center gap-3 text-slate-400">
                 <Phone size={20} />

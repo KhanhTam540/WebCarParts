@@ -13,6 +13,7 @@ import SearchResults from './pages/SearchResults';
 import ProductDetail from './pages/ProductDetail';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import Compare from './pages/Compare';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 
@@ -22,9 +23,7 @@ import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import Profile from './pages/Profile';
-import Notifications from './pages/Notifications';
-import NotificationDetail from './pages/NotificationDetail';
-import Wishlist from './pages/Wishlist'; // THÊM IMPORT
+import SearchHistory from './pages/SearchHistory';
 
 // Admin pages
 import AdminLayout from './pages/Admin/AdminLayout';
@@ -36,7 +35,7 @@ import Models from './pages/Admin/Models';
 import Categories from './pages/Admin/Categories';
 import AdminOrders from './pages/Admin/Orders';
 import Statistics from './pages/Admin/Statistics';
-import Settings from './pages/Admin/Settings';
+import Settings from './pages/Admin/Settings'; // THÊM IMPORT
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -73,6 +72,7 @@ function AppContent() {
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/compare" element={<Compare />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
@@ -118,26 +118,10 @@ function AppContent() {
             }
           />
           <Route
-            path="/notifications"
+            path="/search-history"
             element={
               <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/notifications/:id"
-            element={
-              <ProtectedRoute>
-                <NotificationDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/wishlist"
-            element={
-              <ProtectedRoute>
-                <Wishlist />
+                <SearchHistory />
               </ProtectedRoute>
             }
           />
@@ -160,7 +144,7 @@ function AppContent() {
             <Route path="categories" element={<Categories />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="statistics" element={<Statistics />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="settings" element={<Settings />} /> {/* THÊM ROUTE */}
           </Route>
 
           {/* 404 Not Found */}
